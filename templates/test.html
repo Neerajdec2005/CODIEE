@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: #f0f0f0;
+        }
+        
+        #mascot {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 180px;
+            height: 180px;
+            z-index: 1000;
+            border: 2px solid red;
+        }
+        
+        .debug {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: white;
+            padding: 15px;
+            border: 1px solid #ccc;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        .content {
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="content">
+        <h1>Welcome to My Website</h1>
+        <p>Your content here...</p>
+    </div>
+
+    <div class="debug">
+        <div>Phase: <span id="phaseDebug">-</span></div>
+        <div>Frame: <span id="frameDebug">-</span></div>
+        <div>Position: <span id="posDebug">-</span></div>
+        <div>Loaded: <span id="loadedDebug">0/36</span></div>
+        <div>Walk Steps: <span id="walkDebug">0</span></div>
+        <div>Float Duration: <span id="floatDebug">0</span></div>
+    </div>
+
+    <canvas id="mascot" width="180" height="180"></canvas>
+
+    <script>
+        const canvas = document.getElementById('mascot');
+        const ctx = canvas.getContext('2d');
+
+        let frames = [];
+        let currentFrame = 0;
+        let animationTimer = 0;
+        let loadedFrames = 0;
+        
+        // Animation frames
+        const walkFrames = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23];
+        const idleFrames = [24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35];
+        const stopFrame = 24;
+        
+        // Character state
+        let x = -180;
+        let y = 0;
+        let phase = 'entering';
+        let walkSteps = 0;
+        const maxWalkSteps = 80;
+        let floatOffset = 0;
+        let floatTime = 0;
+        let floatDuration = 0;
+        const maxFloatTime = 180;
+        let currentAnimation = walkFrames;
+        let isReady = false;
+
+        // Load all 36 frames
+        for (let i = 0; i < 36; i++) {
+            const img = new Image();
+            const frameNum = String(i).padStart(3, '0');
+            img.src = `/static/image/frame_${frameNum}.png`;
+            img.onload = () => {
+                loadedFrames++;
+                document.getElementById('loadedDebug').textContent = `${loadedFrames}/36`;
+                if (loadedFrames === 36) {
+                    isReady = true;
+                    animate();
+                }
+            };
+            img.onerror = () => {
+                console.error(`Failed to load frame_${frameNum}.png`);
+            };
+            frames.push(img);
+        }
+
+        function animate() {
+            if (!isReady) return;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, 180, 180);
+            
+            // Update animation frame (only if not stopped)
+            if (phase !== 'stopped') {
+                animationTimer += 0.15;
+                if (animationTimer >= 1) {
+                    animationTimer = 0;
+                    currentFrame = (currentFrame + 1) % currentAnimation.length;
+                }
+            }
+            
+            // Update position and phase
+            if (phase === 'entering') {
+                x += 2;
+                if (x >= 20) {
+                    x = 20;
+                    phase = 'walking';
+                    walkSteps = 0;
+                }
+            } else if (phase === 'walking') {
+                walkSteps++;
+                x += 1.5;
+                if (walkSteps >= maxWalkSteps) {
+                    phase = 'floating';
+                    currentAnimation = idleFrames;
+                    currentFrame = 0;
+                    floatDuration = 0;
+                }
+            } else if (phase === 'floating') {
+                floatTime += 0.05;
+                floatOffset = Math.sin(floatTime) * 8;
+                floatDuration++;
+                
+                if (floatDuration >= maxFloatTime) {
+                    phase = 'stopped';
+                    floatOffset = 0;
+                }
+            }
+            
+            // Update canvas position
+            const mascotElement = document.getElementById('mascot');
+            mascotElement.style.bottom = (20 + floatOffset) + 'px';
+            mascotElement.style.right = x + 'px';
+            
+            // Draw current frame
+            let frameIndex;
+            if (phase === 'stopped') {
+                frameIndex = stopFrame;
+            } else {
+                frameIndex = currentAnimation[currentFrame];
+            }
+            
+            if (frames[frameIndex] && frames[frameIndex].complete) {
+                ctx.drawImage(frames[frameIndex], 0, 0, 180, 180);
+            }
+            
+            // Update debug info
+            document.getElementById('phaseDebug').textContent = phase;
+            document.getElementById('frameDebug').textContent = frameIndex;
+            document.getElementById('posDebug').textContent = `x:${Math.round(x)}, y:${Math.round(floatOffset)}`;
+            document.getElementById('walkDebug').textContent = walkSteps;
+            document.getElementById('floatDebug').textContent = floatDuration;
+            
+            requestAnimationFrame(animate);
+        }
+    </script>
+</body>
+</html>
