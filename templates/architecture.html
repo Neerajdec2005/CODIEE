@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODIEE Architecture</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        :root {
+            --bg: #0b1219;
+            --panel: #132232;
+            --border: #2b4761;
+            --text: #e6f3ff;
+            --muted: #9bb7d3;
+            --accent: #7be6cb;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 10% 12%, rgba(123, 230, 203, 0.17), transparent 36%),
+                linear-gradient(165deg, var(--bg), #111e2a 52%, #132536);
+        }
+
+        .shell {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+            display: grid;
+            gap: 12px;
+        }
+
+        .top {
+            border: 1px solid var(--border);
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 10px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+        }
+
+        .title { font-weight: 700; letter-spacing: 0.02em; }
+        .meta { color: var(--muted); font-size: 0.9rem; }
+
+        .actions { display: flex; gap: 8px; }
+
+        .btn {
+            border: 1px solid var(--border);
+            color: var(--text);
+            background: #1a2a3b;
+            border-radius: 9px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.86rem;
+        }
+
+        .btn:hover { filter: brightness(1.08); }
+
+        .btn-accent {
+            border-color: transparent;
+            background: linear-gradient(90deg, #55d4b8, #89edd5);
+            color: #102228;
+            font-weight: 700;
+        }
+
+        .panel {
+            border: 1px solid var(--border);
+            background: var(--panel);
+            border-radius: 12px;
+            padding: 12px;
+        }
+
+        .diagram-shell {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            background: #0f1923;
+            padding: 10px;
+            overflow: auto;
+            min-height: 260px;
+        }
+
+        .layers { display: grid; gap: 8px; margin-top: 10px; }
+
+        .layer {
+            border-left: 3px solid var(--accent);
+            padding-left: 8px;
+            color: var(--muted);
+            font-size: 0.88rem;
+        }
+
+        .layer strong { color: var(--text); display: block; margin-bottom: 3px; }
+
+        .status { color: var(--muted); font-size: 0.88rem; }
+        .status.error { color: #ff8d8d; }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <div class="top">
+            <div>
+                <div class="title">CODIEE Architecture</div>
+                <div id="fileMeta" class="meta">Separate architecture file-backed view</div>
+            </div>
+            <div class="actions">
+                <button class="btn" id="backBtn">Back To Editor</button>
+                <button class="btn" id="refreshBtn">Refresh</button>
+                <button class="btn btn-accent" id="exportBtn">Export PNG</button>
+            </div>
+        </div>
+
+        <section class="panel">
+            <div id="status" class="status">Loading latest architecture...</div>
+            <div id="diagramShell" class="diagram-shell">
+                <div id="diagram" class="mermaid"></div>
+            </div>
+            <div id="layers" class="layers"></div>
+        </section>
+    </main>
+
+    <script>
+        mermaid.initialize({
+            startOnLoad: false,
+            securityLevel: 'loose',
+            flowchart: { useMaxWidth: true, htmlLabels: true }
+        });
+
+        const statusEl = document.getElementById('status');
+        const fileMeta = document.getElementById('fileMeta');
+        const diagram = document.getElementById('diagram');
+        const layers = document.getElementById('layers');
+
+        const backBtn = document.getElementById('backBtn');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const exportBtn = document.getElementById('exportBtn');
+
+        backBtn.addEventListener('click', () => {
+            if (confirm('Would you like to download the architecture before leaving? This data can be removed from your browser.')) {
+                exportBtn.click();
+            }
+            window.location.href = '/editor';
+        });
+
+        refreshBtn.addEventListener('click', async () => {
+            await loadArchitecture();
+        });
+
+        exportBtn.addEventListener('click', async () => {
+            const svg = diagram.querySelector('svg');
+            if (!svg) {
+                setStatus('No diagram available to export.', true);
+                return;
+            }
+
+            try {
+                const serializer = new XMLSerializer();
+                const svgString = serializer.serializeToString(svg);
+                const bbox = svg.getBBox();
+                const width = Math.max(1, Math.ceil(bbox.width || svg.clientWidth || 1200));
+                const height = Math.max(1, Math.ceil(bbox.height || svg.clientHeight || 800));
+                const scale = 2;
+
+                const canvas = document.createElement('canvas');
+                canvas.width = width * scale;
+                canvas.height = height * scale;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.setTransform(scale, 0, 0, scale, 0, 0);
+
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const url = URL.createObjectURL(svgBlob);
+                const img = new Image();
+
+                await new Promise((resolve, reject) => {
+                    img.onload = resolve;
+                    img.onerror = reject;
+                    img.src = url;
+                });
+
+                ctx.drawImage(img, 0, 0, width, height);
+                URL.revokeObjectURL(url);
+
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = 'codiee-architecture.png';
+                link.click();
+
+                setStatus('Architecture PNG exported.', false);
+            } catch (error) {
+                setStatus(`Export failed: ${error.message}`, true);
+            }
+        });
+
+        async function loadArchitecture() {
+            setStatus('Loading latest architecture from build files...', false);
+            try {
+                const response = await fetch('/api/architecture-latest');
+                const data = await response.json();
+                if (!response.ok) {
+                    setStatus(data.error || 'Failed to load architecture.', true);
+                    diagram.textContent = '';
+                    layers.innerHTML = '';
+                    return;
+                }
+
+                const architecture = data.architecture || {};
+                fileMeta.textContent = `Files: ${data.files?.json || 'latest_architecture.json'}, ${data.files?.mermaid || 'latest_architecture.mmd'}`;
+
+                diagram.textContent = normalizeMermaid(architecture.diagram_mermaid || '');
+                try {
+                    await mermaid.run({ nodes: [diagram] });
+                } catch (err) {
+                    diagram.textContent = `Mermaid render failed: ${err.message}`;
+                }
+
+                const layerItems = architecture.layers || [];
+                layers.innerHTML = layerItems.map((layer) => {
+                    return `<div class="layer"><strong>${escapeHtml(layer.title || 'Layer')}</strong>${escapeHtml(layer.detail || '-')}</div>`;
+                }).join('');
+
+                setStatus(`Loaded architecture (${architecture.view_mode || 'standard'}).`, false);
+            } catch (error) {
+                setStatus(`Unexpected error: ${error.message}`, true);
+            }
+        }
+
+        function setStatus(message, isError) {
+            statusEl.textContent = message;
+            statusEl.classList.toggle('error', Boolean(isError));
+        }
+
+        function escapeHtml(value) {
+            return String(value)
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function normalizeMermaid(rawValue) {
+            let value = String(rawValue || '').trim();
+
+            // Remove markdown code fences if the LLM returns ```mermaid ... ```.
+            value = value.replace(/^```(?:mermaid)?\s*/i, '').replace(/```\s*$/i, '').trim();
+
+            // Convert escaped newlines/tabs into real characters for Mermaid parsing.
+            value = value.replace(/\\r\\n/g, '\n').replace(/\\n/g, '\n').replace(/\\t/g, '\t');
+
+            return value;
+        }
+
+        loadArchitecture();
+
+        // Prompt to download architecture when leaving the page
+        window.addEventListener('beforeunload', (event) => {
+            const message = 'Would you like to download the architecture before leaving? This data can be removed from your browser.';
+            event.returnValue = message; // Standard for most browsers
+            return message; // For some older browsers
+        });
+    </script>
+</body>
+</html>

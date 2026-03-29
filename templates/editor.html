@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CODIEE</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-javascript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-typescript.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-markup.min.js"></script>
+    <style>
+        :root {
+            --bg: #0a1117;
+            --panel: #121f2a;
+            --panel-2: #162636;
+            --border: #2d4358;
+            --text: #eaf4ff;
+            --muted: #9fb6cd;
+            --accent: #6ee7c8;
+            --accent-2: #ffcc75;
+            --danger: #ff7f7f;
+            --line-highlight: rgba(110, 231, 200, 0.2);
+            --line-border: rgba(110, 231, 200, 0.65);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background:
+                radial-gradient(circle at 8% 10%, rgba(110, 231, 200, 0.18), transparent 38%),
+                radial-gradient(circle at 92% 0%, rgba(255, 204, 117, 0.12), transparent 28%),
+                linear-gradient(160deg, var(--bg), #0f1820 42%, #101f2a);
+            color: var(--text);
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .app {
+            display: grid;
+            grid-template-rows: 64px 1fr;
+            min-height: 100vh;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 19, 28, 0.85);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+        }
+
+        .dot {
+            width: 11px;
+            height: 11px;
+            border-radius: 50%;
+            background: var(--accent);
+            box-shadow: 0 0 0 6px rgba(110, 231, 200, 0.15);
+        }
+
+        .controls {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+        }
+
+        .btn {
+            border: 1px solid var(--border);
+            color: var(--text);
+            background: var(--panel-2);
+            border-radius: 9px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 0.88rem;
+        }
+
+        .btn:hover { filter: brightness(1.08); }
+
+        .btn-accent {
+            background: linear-gradient(90deg, #57d3b6, #8cf2d7);
+            border-color: transparent;
+            color: #0f1f22;
+            font-weight: 700;
+        }
+
+        .btn-warm {
+            background: linear-gradient(90deg, #ffcc75, #ffa757);
+            border-color: transparent;
+            color: #2b1d05;
+            font-weight: 700;
+        }
+
+        .workspace { padding: 12px; }
+
+        .panel {
+            border: 1px solid var(--border);
+            background: var(--panel);
+            border-radius: 12px;
+            overflow: hidden;
+            height: calc(100vh - 100px);
+            display: grid;
+            grid-template-rows: auto 1fr auto auto;
+        }
+
+        .panel-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            background: #101a24;
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+        #fileInput { display: none; }
+
+        .editor-surface {
+            position: relative;
+            background: #0f1720;
+            overflow: hidden;
+        }
+
+        .editor-highlight,
+        #codeInput {
+            position: absolute;
+            inset: 0;
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            padding: 12px 12px 12px 8px;
+            tab-size: 4;
+            white-space: pre;
+        }
+
+        .editor-highlight {
+            z-index: 1;
+            background: #0f1720;
+            color: #d9ebff;
+            border: 0;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        #codeInput {
+            z-index: 2;
+            background: transparent;
+            color: transparent;
+            caret-color: #d9ebff;
+            border: 0;
+            outline: none;
+            resize: none;
+            user-select: text;
+            padding: 12px 12px 12px 58px;
+        }
+
+        .editor-line {
+            display: grid;
+            grid-template-columns: 36px 1fr;
+            gap: 8px;
+            align-items: start;
+            padding: 0 6px;
+            border-radius: 7px;
+        }
+
+        .line-num {
+            text-align: right;
+            color: #6585a1;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        .line-code {
+            white-space: pre;
+            color: #d6e8fb;
+        }
+
+        .editor-line.active {
+            background: var(--line-highlight);
+            border-left: 3px solid var(--line-border);
+        }
+
+        .editor-foot {
+            border-top: 1px solid var(--border);
+            padding: 8px 12px;
+            color: var(--muted);
+            font-size: 0.83rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #0f1821;
+            gap: 8px;
+        }
+
+        .status {
+            border-top: 1px solid var(--border);
+            padding: 8px 12px;
+            min-height: 38px;
+            color: var(--muted);
+            font-size: 0.85rem;
+            background: #0f1821;
+        }
+
+        .status.error { color: var(--danger); }
+
+        .sprite-zone {
+            position: fixed;
+            right: 20px;
+            bottom: 20px;
+            width: min(420px, calc(100vw - 32px));
+            z-index: 25;
+        }
+
+        .speech {
+            --tail-left: 56px;
+            position: relative;
+            border: 1px solid #3f5367;
+            background: #f6fbff;
+            color: #132332;
+            border-radius: 14px;
+            padding: 10px 12px;
+            margin-bottom: 12px;
+            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+            min-height: 170px;
+        }
+
+        .speech.hidden-intro {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        .speech:after {
+            content: '';
+            position: absolute;
+            left: var(--tail-left);
+            bottom: -14px;
+            border-width: 14px 10px 0 10px;
+            border-style: solid;
+            border-color: #f6fbff transparent transparent transparent;
+            transform: translateX(-50%);
+        }
+
+        .speech h3 { margin: 0 0 6px; color: #0f2f43; font-size: 0.96rem; }
+        .explanation-content {
+            font-size: 0.82rem;
+            line-height: 1.45;
+            white-space: pre-line;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .loading-card {
+            white-space: normal;
+            display: grid;
+            gap: 10px;
+            padding: 2px 0;
+        }
+
+        .loading-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #0f2f43;
+            font-weight: 700;
+            font-size: 0.9rem;
+        }
+
+        .loading-spinner {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid rgba(15, 47, 67, 0.18);
+            border-top-color: #0f2f43;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+
+        .loading-dots::after {
+            content: '...';
+            display: inline-block;
+            width: 1.1em;
+            overflow: hidden;
+            vertical-align: bottom;
+            animation: dots 1.2s steps(4, end) infinite;
+        }
+
+        .loading-subtext {
+            color: #36566d;
+            font-size: 0.78rem;
+            line-height: 1.35;
+        }
+
+        .loading-skeleton {
+            display: grid;
+            gap: 7px;
+        }
+
+        .loading-line {
+            height: 8px;
+            border-radius: 99px;
+            background: linear-gradient(90deg, #e8eef3 25%, #f6f9fc 50%, #e8eef3 75%);
+            background-size: 220% 100%;
+            animation: shimmer 1.4s ease-in-out infinite;
+        }
+
+        .loading-line.w-85 { width: 85%; }
+        .loading-line.w-70 { width: 70%; }
+        .loading-line.w-55 { width: 55%; }
+
+        .speech-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .sprite-row {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .sprite {
+            width: 150px;
+            image-rendering: pixelated;
+            animation: bob 1.8s ease-in-out infinite;
+            filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+        }
+
+        .sprite.intro-travel {
+            animation: sprite-travel 2.1s cubic-bezier(0.18, 0.82, 0.25, 1) forwards;
+        }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+            filter: none;
+        }
+
+        .sprite.loading { animation: bob 0.7s ease-in-out infinite; }
+
+        .breakdown-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 8px 0;
+            font-size: 0.75rem;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .breakdown-table th,
+        .breakdown-table td {
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .breakdown-table th {
+            background: #f0f4f8;
+            font-weight: 600;
+            color: #0f2f43;
+            font-size: 0.72rem;
+        }
+
+        .breakdown-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .explanation-content strong {
+            font-weight: 700;
+            color: #0f2f43;
+            font-size: 0.85rem;
+        }
+
+        @keyframes bob {
+            0% { transform: translateY(0); }
+            50% { transform: translateY(-7px); }
+            100% { transform: translateY(0); }
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: 100% 0; }
+            100% { background-position: -100% 0; }
+        }
+
+        @keyframes dots {
+            0% { width: 0; }
+            100% { width: 1.1em; }
+        }
+
+        @keyframes sprite-travel {
+            0% {
+                opacity: 0;
+                transform: translate(250px, 130px) scale(0.92);
+            }
+            20% {
+                opacity: 1;
+            }
+            75% {
+                transform: translate(-10px, -6px) scale(1.02);
+            }
+            100% {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+        }
+
+        .nav {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: flex-end;
+            flex-wrap: nowrap;
+            min-width: 196px;
+            margin-bottom: 4px;
+        }
+
+        .nav .btn {
+            min-width: 92px;
+        }
+
+        .nav.hidden { display: none; }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header class="topbar">
+            <div class="brand"><span class="dot"></span> CODIEE</div>
+            <div class="controls">
+                <input id="fileInput" type="file" accept=".py,.js,.ts,.tsx,.jsx,.mjs,.cjs,.java,.cpp,.c,.cs,.go,.rb,.php,.rs,.swift,.kt,.html,.css,.json,.yaml,.yml,.md,.txt">
+                <button class="btn" id="topRemoveBtn" style="display:none;">Remove</button>
+                <button class="btn btn-warm" id="architectureBtn">Architecture</button>
+            </div>
+        </header>
+
+        <main class="workspace">
+            <section class="panel">
+                <div class="panel-head">
+                    <span>Editor</span>
+                    <span id="fileName">unsaved.py</span>
+                </div>
+                <div class="editor-surface">
+                    <pre id="editorHighlight" class="editor-highlight"></pre>
+                    <textarea id="codeInput" spellcheck="false" placeholder="Paste code here."></textarea>
+                </div>
+                <div class="editor-foot">
+                    <span id="lineMeta">Line -</span>
+                    <span id="llmMeta">LLM: waiting</span>
+                </div>
+                <div id="status" class="status">Ready. Paste code or upload a file, then click Analyze.</div>
+            </section>
+        </main>
+    </div>
+
+    <section class="sprite-zone">
+        <div class="speech hidden-intro" id="speechBox">
+            <h3>Codiee Explanation</h3>
+            <div class="explanation-content" id="speechContent">-</div>
+            <div class="speech-actions" id="speechActions">
+                <button class="btn" id="speechUploadBtn">Upload Code</button>
+                <button class="btn btn-accent" id="speechAnalyzeBtn" style="display:none;">Analyze</button>
+            </div>
+        </div>
+        <div class="sprite-row">
+            <img id="spriteImg" class="sprite" src="/static/image/frame_000.png" alt="Codiee sprite">
+            <div class="nav hidden" id="lineNav">
+                <button class="btn" id="prevBtn">Previous</button>
+                <button class="btn btn-accent" id="nextBtn">Next</button>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        const codeInput = document.getElementById('codeInput');
+        const editorHighlight = document.getElementById('editorHighlight');
+        const statusEl = document.getElementById('status');
+        const lineMeta = document.getElementById('lineMeta');
+        const llmMeta = document.getElementById('llmMeta');
+        const fileName = document.getElementById('fileName');
+
+        const fileInput = document.getElementById('fileInput');
+        const topRemoveBtn = document.getElementById('topRemoveBtn');
+        const architectureBtn = document.getElementById('architectureBtn');
+
+        const speechContent = document.getElementById('speechContent');
+        const speechBox = document.getElementById('speechBox');
+        const speechActions = document.getElementById('speechActions');
+        const speechUploadBtn = document.getElementById('speechUploadBtn');
+        const speechAnalyzeBtn = document.getElementById('speechAnalyzeBtn');
+        const lineNav = document.getElementById('lineNav');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const spriteImg = document.getElementById('spriteImg');
+
+        let analysisResult = null;
+        let currentLineIndex = 0;
+        let currentCursorLine = 1;
+        let spriteLoadingTimer = null;
+        let spriteFrameIndex = 0;
+        let introRunning = false;
+        let uiEnabled = true;
+        let hasAnalyzedOnce = false;
+        const spriteFrames = Array.from({ length: 36 }, (_, i) => `/static/image/frame_${String(i).padStart(3, '0')}.png`);
+        const EDITOR_CODE_KEY = 'codiee.editor.code';
+        const EDITOR_FILENAME_KEY = 'codiee.editor.filename';
+
+        codeInput.addEventListener('scroll', () => {
+            editorHighlight.scrollTop = codeInput.scrollTop;
+            editorHighlight.scrollLeft = codeInput.scrollLeft;
+        });
+
+        window.addEventListener('resize', alignSpeechTailToSprite);
+        spriteImg.addEventListener('load', alignSpeechTailToSprite);
+
+        document.querySelector('.editor-surface').addEventListener('click', () => {
+            codeInput.focus();
+        });
+
+        codeInput.addEventListener('click', syncCursorLineFromSelection);
+        codeInput.addEventListener('keyup', syncCursorLineFromSelection);
+        codeInput.addEventListener('select', syncCursorLineFromSelection);
+
+        speechUploadBtn.addEventListener('click', () => fileInput.click());
+
+        fileInput.addEventListener('change', async () => {
+            const file = fileInput.files[0];
+            if (!file) return;
+            fileName.textContent = file.name;
+            const text = await file.text();
+            codeInput.value = text;
+            codeInput.setSelectionRange(0, 0);
+            currentCursorLine = 1;
+            hasAnalyzedOnce = false;
+            renderEditorView(text.split('\n'), -1);
+            alignSpeechTailToSprite();
+            updateCodeDependentUI();
+            persistEditorState();
+            setStatus(`Loaded ${file.name}. Click Analyze.`, false);
+        });
+
+        topRemoveBtn.addEventListener('click', () => {
+            codeInput.value = '';
+            fileInput.value = '';
+            fileName.textContent = 'unsaved.py';
+            analysisResult = null;
+            currentLineIndex = 0;
+            currentCursorLine = 1;
+            hasAnalyzedOnce = false;
+            lineMeta.textContent = 'Line -';
+            llmMeta.textContent = 'LLM: waiting';
+            renderEditorView([''], -1);
+            speechContent.innerHTML = '<strong>Hi! I am Codiee.</strong>\nEither paste code or upload a file to begin.';
+            updateCodeDependentUI();
+            persistEditorState();
+            setStatus('Code removed. Paste or upload to continue.', false);
+        });
+
+        architectureBtn.addEventListener('click', async () => {
+            const code = codeInput.value;
+            if (!code.trim()) {
+                setStatus('Please paste or upload code first.', true);
+                return;
+            }
+
+            startSpriteLoadingAnimation();
+            setStatus('Loading full architecture analysis...', false);
+
+            try {
+                // Load the full architecture data
+                const response = await fetch('/api/architecture-latest');
+                if (!response.ok) {
+                    // If no architecture exists, run analysis first
+                    setStatus('No architecture found. Running analysis first...', false);
+                    const analyzeResponse = await fetch('/api/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ code, filename: fileName.textContent || 'snippet.txt' })
+                    });
+                    
+                    if (!analyzeResponse.ok) {
+                        const errorData = await analyzeResponse.json();
+                        setStatus(errorData.error || 'Analysis failed.', true);
+                        return;
+                    }
+                }
+
+                persistEditorState();
+                window.location.href = '/architecture';
+            } catch (error) {
+                setStatus(`Failed to load architecture: ${error.message}`, true);
+            } finally {
+                stopSpriteLoadingAnimation();
+            }
+        });
+
+        codeInput.addEventListener('input', () => {
+            renderEditorView(codeInput.value.split('\n'), -1);
+            syncCursorLineFromSelection();
+            updateCodeDependentUI();
+            persistEditorState();
+        });
+
+        async function analyzeSingleLine(lineNumber) {
+            const code = codeInput.value;
+            if (!code.trim()) {
+                setStatus('Please paste or upload code first.', true);
+                return;
+            }
+
+            const totalLines = Math.max(1, code.split('\n').length);
+            const safeLineNumber = Math.min(Math.max(1, lineNumber), totalLines);
+            currentCursorLine = safeLineNumber;
+
+            startSpriteLoadingAnimation();
+            setStatus(`Analyzing line ${safeLineNumber} only...`, false);
+
+            try {
+                const response = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        code,
+                        filename: fileName.textContent || 'snippet.txt',
+                        line_number: safeLineNumber,
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) {
+                    setStatus(data.error || 'Analysis failed.', true);
+                    return;
+                }
+
+                analysisResult = data;
+                currentLineIndex = 0;
+                hasAnalyzedOnce = true;
+                llmMeta.textContent = data.llm && data.llm.enabled ? `LLM: ${data.llm.model}` : 'LLM: unavailable';
+                showCurrentLineExplanation();
+                updateCodeDependentUI();
+                setStatus(`Line ${safeLineNumber} analyzed.`, false);
+            } catch (error) {
+                setStatus(`Unexpected error: ${error.message}`, true);
+            } finally {
+                stopSpriteLoadingAnimation();
+            }
+        }
+
+        function findNextNonEmptyLine(startLine, direction) {
+            const lines = codeInput.value.split('\n');
+            let line = startLine;
+
+            while (line >= 1 && line <= lines.length) {
+                const content = lines[line - 1] || '';
+                if (content.trim().length > 0) {
+                    return line;
+                }
+                line += direction;
+            }
+
+            return null;
+        }
+
+        speechAnalyzeBtn.addEventListener('click', async () => {
+            await analyzeSingleLine(currentCursorLine);
+        });
+
+        nextBtn.addEventListener('click', async () => {
+            const totalLines = Math.max(1, codeInput.value.split('\n').length);
+            if (currentCursorLine >= totalLines) {
+                setStatus('Already at the last line.', false);
+                return;
+            }
+
+            const nextNonEmptyLine = findNextNonEmptyLine(currentCursorLine + 1, 1);
+            if (!nextNonEmptyLine) {
+                setStatus('No more non-empty lines below.', false);
+                return;
+            }
+
+            await analyzeSingleLine(nextNonEmptyLine);
+        });
+
+        prevBtn.addEventListener('click', async () => {
+            if (currentCursorLine <= 1) {
+                setStatus('Already at the first line.', false);
+                return;
+            }
+
+            const prevNonEmptyLine = findNextNonEmptyLine(currentCursorLine - 1, -1);
+            if (!prevNonEmptyLine) {
+                setStatus('No more non-empty lines above.', false);
+                return;
+            }
+
+            await analyzeSingleLine(prevNonEmptyLine);
+        });
+
+        function parseMarkdown(text) {
+            if (!text) return text;
+            // Convert **bold** to <strong>bold</strong>
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        }
+
+        function parseMarkdownTable(markdown) {
+            if (!markdown || !markdown.includes('|')) return parseMarkdown(markdown);
+            
+            const lines = markdown.split('\n');
+            let html = '<table class="breakdown-table">\n';
+            let isHeader = true;
+            
+            for (const line of lines) {
+                if (line.trim() === '' || line.startsWith('|---')) continue;
+                
+                const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
+                if (cells.length === 0) continue;
+                
+                if (isHeader) {
+                    html += '<thead><tr>\n';
+                    cells.forEach(cell => {
+                        html += `<th>${parseMarkdown(cell)}</th>\n`;
+                    });
+                    html += '</tr></thead>\n<tbody>\n';
+                    isHeader = false;
+                } else {
+                    html += '<tr>\n';
+                    cells.forEach(cell => {
+                        html += `<td>${parseMarkdown(cell)}</td>\n`;
+                    });
+                    html += '</tr>\n';
+                }
+            }
+            html += '</tbody></table>';
+            return html;
+        }
+
+        function showCurrentLineExplanation() {
+            const explanations = analysisResult.line_explanations.explanations || [];
+            if (!explanations.length) {
+                setStatus('No line explanations returned.', true);
+                return;
+            }
+
+            const item = explanations[currentLineIndex];
+            const codeLines = codeInput.value.split('\n');
+            const activeLine = Math.max(1, item.line) - 1;
+
+            // Build formatted explanation
+            let explanationText = '';
+            if (item.code) {
+                explanationText += `<strong>Given Line</strong>\n${item.code}\n\n`;
+            }
+            if (item.what_is_this_line) {
+                explanationText += `<strong>What is this line?</strong>\n${parseMarkdown(item.what_is_this_line)}\n\n`;
+            }
+            if (item.breakdown) {
+                explanationText += `<strong>Breakdown of each part</strong>\n${parseMarkdownTable(item.breakdown)}\n\n`;
+            }
+            if (item.related_to_code) {
+                explanationText += `<strong>How is it related to code (why we use it)?</strong>\n${parseMarkdown(item.related_to_code)}\n\n`;
+            }
+            if (item.where_from) {
+                explanationText += `<strong>Where does this come from?</strong>\n${parseMarkdown(item.where_from)}`;
+            }
+
+            speechContent.innerHTML = explanationText || 'No explanation available';
+
+            lineMeta.textContent = `Line ${item.line}`;
+            currentCursorLine = Math.max(1, Number(item.line) || currentCursorLine);
+            renderEditorView(codeLines, activeLine);
+        }
+
+        function renderEditorView(lines, activeIndex) {
+            const lang = detectLanguage(fileName.textContent || '', codeInput.value || '');
+            const grammar = Prism.languages[lang] || Prism.languages.clike || Prism.languages.markup;
+            const html = lines.map((line, idx) => {
+                const safeLine = line.length ? line : ' ';
+                const highlighted = Prism.highlight(safeLine, grammar, lang);
+                const activeClass = idx === activeIndex ? 'editor-line active' : 'editor-line';
+                return `<div class="${activeClass}"><span class="line-num">${idx + 1}</span><span class="line-code">${highlighted}</span></div>`;
+            }).join('');
+
+            editorHighlight.innerHTML = html;
+            editorHighlight.scrollTop = codeInput.scrollTop;
+            editorHighlight.scrollLeft = codeInput.scrollLeft;
+
+            if (activeIndex >= 0) {
+                const activeEditor = editorHighlight.querySelector('.editor-line.active');
+                if (activeEditor) {
+                    const viewportTop = editorHighlight.scrollTop;
+                    const viewportBottom = viewportTop + editorHighlight.clientHeight;
+                    const activeTop = activeEditor.offsetTop;
+                    const activeBottom = activeTop + activeEditor.offsetHeight;
+                    const edgePadding = 16;
+                    let targetTop = null;
+
+                    // Only scroll when the active line leaves the visible viewport.
+                    if (activeBottom > viewportBottom - edgePadding) {
+                        targetTop = activeBottom - editorHighlight.clientHeight + edgePadding;
+                    } else if (activeTop < viewportTop + edgePadding) {
+                        targetTop = Math.max(0, activeTop - edgePadding);
+                    }
+
+                    if (targetTop !== null) {
+                        codeInput.scrollTo({ top: targetTop, behavior: 'smooth' });
+                    }
+                }
+            }
+        }
+
+        function detectLanguage(name, code) {
+            const lower = (name || '').toLowerCase();
+            if (lower.endsWith('.py')) return 'python';
+            if (lower.endsWith('.ts') || lower.endsWith('.tsx')) return 'typescript';
+            if (lower.endsWith('.js') || lower.endsWith('.jsx') || lower.endsWith('.mjs') || lower.endsWith('.cjs')) return 'javascript';
+            if (lower.endsWith('.html') || lower.endsWith('.xml') || lower.endsWith('.svg')) return 'markup';
+
+            const trimmed = (code || '').trim();
+            if (trimmed.startsWith('<')) return 'markup';
+            if ((code || '').includes('def ') || (code || '').includes('import ')) return 'python';
+            if ((code || '').includes('function ') || (code || '').includes('const ')) return 'javascript';
+            return 'javascript';
+        }
+
+        function getCurrentCursorLine() {
+            const beforeCursor = codeInput.value.slice(0, codeInput.selectionStart);
+            const rawLine = beforeCursor.split('\n').length;
+            const maxLine = Math.max(1, codeInput.value.split('\n').length);
+            return Math.min(Math.max(1, rawLine), maxLine);
+        }
+
+        function syncCursorLineFromSelection() {
+            currentCursorLine = getCurrentCursorLine();
+        }
+
+        function setStatus(msg, isError) {
+            statusEl.textContent = msg;
+            statusEl.classList.toggle('error', Boolean(isError));
+        }
+
+        function setInteractionEnabled(enabled) {
+            uiEnabled = enabled;
+            topRemoveBtn.disabled = !enabled;
+            architectureBtn.disabled = !enabled;
+            speechUploadBtn.disabled = !enabled;
+            speechAnalyzeBtn.disabled = !enabled;
+            const hasCode = hasCodeContent();
+            prevBtn.disabled = !enabled || !hasCode;
+            nextBtn.disabled = !enabled || !hasCode;
+            codeInput.disabled = !enabled;
+        }
+
+        function hasCodeContent() {
+            return codeInput.value.trim().length > 0;
+        }
+
+        function updateCodeDependentUI() {
+            const hasCode = hasCodeContent();
+            lineNav.classList.toggle('hidden', !hasCode);
+            topRemoveBtn.style.display = hasCode ? 'inline-flex' : 'none';
+            speechUploadBtn.style.display = hasAnalyzedOnce ? 'none' : 'inline-flex';
+            speechAnalyzeBtn.style.display = hasCode && !hasAnalyzedOnce ? 'inline-flex' : 'none';
+            prevBtn.disabled = !uiEnabled || !hasCode;
+            nextBtn.disabled = !uiEnabled || !hasCode;
+        }
+
+        async function playSpriteSequenceOnce(frameDelayMs = 60) {
+            for (let i = 0; i < spriteFrames.length; i += 1) {
+                spriteFrameIndex = i;
+                spriteImg.src = spriteFrames[i];
+                alignSpeechTailToSprite();
+                await new Promise((resolve) => setTimeout(resolve, frameDelayMs));
+            }
+        }
+
+        async function runSpriteIntro() {
+            introRunning = true;
+            setInteractionEnabled(false);
+            spriteImg.classList.add('intro-travel');
+            setStatus('Codiee is readying the workspace...', false);
+            alignSpeechTailToSprite();
+
+            // Intro is played directly from the sprite image sequence.
+            await playSpriteSequenceOnce(55);
+            spriteImg.classList.remove('intro-travel');
+            spriteFrameIndex = 0;
+            spriteImg.src = spriteFrames[0];
+            speechBox.classList.remove('hidden-intro');
+
+            speechContent.innerHTML = '<strong>Hi! I am Codiee.</strong>\nEither paste code or upload a file to begin.';
+            setStatus('Ready. Paste code or upload a file, then click Analyze.', false);
+            setInteractionEnabled(true);
+            updateCodeDependentUI();
+            alignSpeechTailToSprite();
+            introRunning = false;
+        }
+
+        function alignSpeechTailToSprite() {
+            if (!speechBox || !spriteImg) return;
+
+            const speechRect = speechBox.getBoundingClientRect();
+            const spriteRect = spriteImg.getBoundingClientRect();
+            if (!speechRect.width || !spriteRect.width) return;
+
+            const spriteCenterX = spriteRect.left + (spriteRect.width / 2);
+            const localX = spriteCenterX - speechRect.left;
+            const clamped = Math.max(18, Math.min(speechRect.width - 18, localX));
+            speechBox.style.setProperty('--tail-left', `${clamped}px`);
+        }
+
+        function persistEditorState() {
+            try {
+                sessionStorage.setItem(EDITOR_CODE_KEY, codeInput.value || '');
+                sessionStorage.setItem(EDITOR_FILENAME_KEY, fileName.textContent || 'snippet.txt');
+            } catch (err) {
+                // Ignore storage failures (private mode or quota limits).
+            }
+        }
+
+        function restoreEditorState() {
+            try {
+                const storedCode = sessionStorage.getItem(EDITOR_CODE_KEY);
+                const storedFilename = sessionStorage.getItem(EDITOR_FILENAME_KEY);
+                if (storedFilename) {
+                    fileName.textContent = storedFilename;
+                }
+                if (storedCode !== null) {
+                    codeInput.value = storedCode;
+                    codeInput.setSelectionRange(0, 0);
+                    currentCursorLine = 1;
+                    renderEditorView(storedCode.split('\n'), -1);
+                    updateCodeDependentUI();
+                    alignSpeechTailToSprite();
+                    setStatus('Restored previous editor session.', false);
+                    return;
+                }
+            } catch (err) {
+                // Ignore storage failures and continue with empty editor.
+            }
+
+            renderEditorView([''], -1);
+            updateCodeDependentUI();
+        }
+
+        function startSpriteLoadingAnimation() {
+            if (introRunning) return;
+            spriteImg.classList.add('loading');
+            speechContent.innerHTML = `
+                <div class="loading-card" role="status" aria-live="polite">
+                    <div class="loading-head">
+                        <span class="loading-spinner" aria-hidden="true"></span>
+                        <span>Analyzing<span class="loading-dots"></span></span>
+                    </div>
+                    <div class="loading-subtext">Codiee is preparing explanation output and model context.</div>
+                    <div class="loading-skeleton" aria-hidden="true">
+                        <div class="loading-line w-85"></div>
+                        <div class="loading-line w-70"></div>
+                        <div class="loading-line w-55"></div>
+                    </div>
+                </div>
+            `;
+
+            if (spriteLoadingTimer) clearInterval(spriteLoadingTimer);
+            spriteLoadingTimer = setInterval(() => {
+                spriteFrameIndex = (spriteFrameIndex + 1) % spriteFrames.length;
+                spriteImg.src = spriteFrames[spriteFrameIndex];
+            }, 90);
+        }
+
+        function stopSpriteLoadingAnimation() {
+            if (spriteLoadingTimer) {
+                clearInterval(spriteLoadingTimer);
+                spriteLoadingTimer = null;
+            }
+            spriteImg.classList.remove('loading');
+            spriteFrameIndex = 0;
+            spriteImg.src = spriteFrames[0];
+            alignSpeechTailToSprite();
+        }
+
+        restoreEditorState();
+        alignSpeechTailToSprite();
+        runSpriteIntro();
+    </script>
+</body>
+</html>

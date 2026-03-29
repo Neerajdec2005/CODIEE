@@ -1,0 +1,62 @@
+# Secrets and local config
+.env
+.env.*
+!.env.example
+
+# Python environment and caches
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# OS/editor noise
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs and runtime/debug outputs
+*.log
+*.out
+*.err
+debug.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Testing and coverage artifacts
+.pytest_cache/
+.hypothesis/
+.tox/
+.nox/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Static analysis/type checking caches
+.mypy_cache/
+.ruff_cache/
+.pyre/
+
+# Build and generated artifacts
+build/
+dist/
+*.egg-info/
+
+# Local scratch/test files (keep only product code)
+tests/
+test.py
+test_*.py
+*_test.py
+*.spec.py
+
+sprite_sheet.png
+templates/test.html
+creature.py
+corr.png
